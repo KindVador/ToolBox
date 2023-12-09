@@ -1,0 +1,7 @@
+-r requirements-core.txt
+
+# For ReadTheDocs
+-r requirements-doc.txt
+
+# For Tests
+-r requirements-tests.txt
