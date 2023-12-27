@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
 import os
-# hook for macOS Big Sur compatibility with PyQt5 and PySide2 libraries
-if os.name == 'posix' and os.sys.platform == 'darwin':
-    os.environ["QT_MAC_WANTS_LAYER"] = "1"
-from pathlib import Path
 import sys
+# hook for macOS Big Sur compatibility with PyQt5 and PySide2 libraries
+if os.name == 'posix' and sys.platform == 'darwin':
+    os.environ["QT_MAC_WANTS_LAYER"] = "1"
+
 import argparse
-import logging
 from logging import FileHandler
 
 from PySide6.QtWidgets import QApplication
 
-from src.main.controller import MainController
+from main.controller import MainController
+from config import *
 
-
-project_name = "DevToolBox"
-project_version = "2023.1"
-
-
-CONFIG_DIR = os.path.join(str(Path.home()), ".plotting_app")
-__version__ = '2021.1.0a3'
+from git.controller import GitController
 
 
 class AppContext(object):
@@ -27,21 +21,25 @@ class AppContext(object):
     def __init__(self, arguments):
         super().__init__()
         self.args = arguments
-        self.version = __version__
+        self.version = get_project_version()
         self.app = QApplication([])
         self.app.setStyle('fusion')
         self._log_file = None
         self._logger = None
         self.mc = MainController(self, self.version)
 
+    def register_tools(self):
+        self.mc.register("Git", GitController())
+
     def run(self):
         self.start_log(debug=args.debug)
+        self.register_tools()
         self.mc()
         return self.app.exec()
 
     @property
     def config_dir(self):
-        return CONFIG_DIR
+        return get_config_dir()
 
     @property
     def resource_dir(self):
@@ -66,9 +64,9 @@ class AppContext(object):
             self._logger.setLevel(logging.DEBUG)
         else:
             self._logger.setLevel(logging.INFO)
-        if not os.path.exists(CONFIG_DIR):
-            os.makedirs(CONFIG_DIR)
-        self.log_file = os.path.join(CONFIG_DIR, f"{project_name}.log")
+        if not os.path.exists(self.config_dir):
+            os.makedirs(self.config_dir)
+        self.log_file = os.path.join(self.config_dir, f"{get_project_name()}.log")
         log_handler = FileHandler(self.log_file, mode='a')
         log_handler.setFormatter(formatter)
         self._logger.addHandler(log_handler)
@@ -89,14 +87,14 @@ class AppContext(object):
         if os.path.exists(filepath):
             self._log_file = filepath
         else:
-            self._log_file = os.path.join(CONFIG_DIR, f"{project_name}.log")
+            self._log_file = os.path.join(self.config_dir, f"{get_project_name()}.log")
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--debug', help="run application in DEBUG mode", action='store_const', const=True,
-                        default=False, required=False)
+    parser.add_argument('-d', '--debug', help="run application in DEBUG mode", action='store_const',
+                        const=True, default=False, required=False)
     args = parser.parse_args()
     appctxt = AppContext(args)
     sys.exit(appctxt.run())

@@ -1,1 +1,3 @@
 invoke
+pyinstaller
+Sphinx
